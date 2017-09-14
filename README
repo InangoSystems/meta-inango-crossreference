@@ -2,7 +2,10 @@ This README file contains information on the contents of the
 inango layer.
 
 Please see the corresponding sections below for details.
+============
 
+Inango layer allows to use and implement tools for generating
+cross reference files for all build packages.
 
 Dependencies
 ============
@@ -40,8 +43,6 @@ Table of Contents
 I. Adding the inango layer to your build
 =================================================
 
---- replace with specific instructions for the inango layer ---
-
 In order to use this layer, you need to make the build system aware of
 it.
 
@@ -57,6 +58,10 @@ other layers needed. e.g.:
     /path/to/yocto/meta-inango \
     "
 
+Defining CROSS_REFERENCE_ERROR_ON_FAILURE variable will allow you
+to continue or stop build if tag file creation fails.
+
+Value "1" for CROSS_REFERENCE_ERROR_ON_FAILURE stops build. 
 
 II. Misc
 ========

@@ -1,5 +1,9 @@
 # Copyright (C) 2015 Igor Santos <igor.santos@aker.com.br>
 # Released under the MIT license (see COPYING.MIT for the terms)
+#
+# Includes Inango System Ltd changes/modifications dated: 2017.
+# Changed/modified portions - Copyright (C) 2017 Inango Systems Ltd.
+
 
 SUMMARY = "Cscope is a text screen based source browser"
 DESCRIPTION = "Cscope is a developer's tool for browsing source code. \

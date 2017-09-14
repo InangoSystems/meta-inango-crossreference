@@ -1,5 +1,9 @@
 # Copyright (C) 2015 Igor Santos <igor.santos@aker.com.br>
 # Released under the MIT license (see COPYING.MIT for the terms)
+#
+# Includes Inango System Ltd changes/modifications dated: 2017.
+# Changed/modified portions - Copyright (C) 2017 Inango Systems Ltd.
+
 
 SUMMARY = "Exuberant Ctags"
 DESCRIPTION = "Exuberant Ctags is a multilanguage reimplementation of the \
