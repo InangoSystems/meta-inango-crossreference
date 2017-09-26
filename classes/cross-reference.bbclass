@@ -12,7 +12,14 @@ CROSS_REFERENCE_CMD_ctags = "ctags -R"
 CROSS_REFERENCE_CMD_cscope = "cscope -Rb"
 
 python do_cross_reference () {
-    os.chdir(d.getVar('S',True))
+    current_dir = os.getcwd()
+
+    try:
+        os.chdir(d.getVar('S',True))
+    except FileNotFoundError:
+        bb.plain("Can't create tags file for package: " + d.getVar('PN', True))
+        return
+
     retvalue = os.system(d.getVar("CROSS_REFERENCE_CMD_" + d.getVar('CROSS_REFERENCE_TOOL', True), True))
 
     if retvalue != 0:
@@ -22,6 +29,8 @@ python do_cross_reference () {
             bb.warn("Can't create tags file for package: " + d.getVar('PN', True))
     else:
         bb.note("Tag file was created. See directory: " + d.getVar('S',True) + " for details")
+
+    os.chdir(current_dir)
 }
 
 addtask cross_reference after do_patch before do_build
