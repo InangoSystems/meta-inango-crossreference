@@ -45,11 +45,11 @@ python do_cross_reference () {
     if d.getVar('CROSS_REFERENCE_CMD_' + d.getVar('CROSS_REFERENCE_TOOL', True), True) is None:
         # add command as a variable to create tag file
         bb.fatal("Command for creating tag file with " + d.getVar('CROSS_REFERENCE_TOOL', True) + " utility is not specified")
-
     if not os.path.exists(d.getVar('CROSS_REFERENCE_TAG_DIR', True)):
         os.mkdir(d.getVar('CROSS_REFERENCE_TAG_DIR', True))
 
-    retvalue = os.system(d.getVar("CROSS_REFERENCE_CMD_" + d.getVar('CROSS_REFERENCE_TOOL', True), True))
+    cross_reference_command = d.getVar("CROSS_REFERENCE_CMD_" + d.getVar('CROSS_REFERENCE_TOOL', True), True)
+    retvalue = os.system(cross_reference_command)
 
     if retvalue != 0:
         error_on_failure("Can't create tags file for package: ")
