@@ -12,10 +12,12 @@ CROSS_REFERENCE_TAG_FILE_PATH ?= "${CROSS_REFERENCE_TAG_DIR}/${CROSS_REFERENCE_T
 CROSS_REFERENCE_ADDITIONAL_TAG_FILE = "source.atf"
 CROSS_REFERENCE_CMD_ctags = "ctags --file-scope=no --recurse -f ${CROSS_REFERENCE_TAG_FILE_PATH} `pwd`"
 CROSS_REFERENCE_CMD_cscope = "cscope -Rb -f ${CROSS_REFERENCE_TAG_FILE_PATH}"
-
-#For enabled cross-reference set ${CROSS_REFERENCE_ENABLE_FOR_NATIVE} to '1'
-#For disabled set ${CROSS_REFERENCE_ENABLE_FOR_NATIVE} to '0' (default)
+CROSS_REFERENCE_KERNEL = "${PREFERRED_PROVIDER_virtual/kernel}"
+#For enabled cross-reference for native/kernel
+#set ${CROSS_REFERENCE_ENABLE_FOR_NATIVE}/${CROSS_REFERENCE_ENABLE_FOR_KERNEL} to '1'
+#For disabled set to '0' (default)
 CROSS_REFERENCE_ENABLE_FOR_NATIVE ?= '0'
+CROSS_REFERENCE_ENABLE_FOR_KERNEL ?= '0'
 
 do_all_cross_reference[doc] = "Creates tag file of language objects found in source files for all packages"
 
@@ -52,7 +54,6 @@ def cross_reference_task(d, param):
             bb.warn(message)
         else:
             bb.plain(message)
-
     current_dir = os.getcwd()
     try:
         os.chdir(param['source'])
@@ -103,6 +104,11 @@ python do_cross_reference () {
 }
 
 python do_cross_reference_class-native(){
+    if d.getVar('CROSS_REFERENCE_ENABLE_FOR_NATIVE', True) == '1':
+        default_cross_reference(d)
+}
+
+do_cross_reference_pn-${CROSS_REFERENCE_KERNEL}() {
     if d.getVar('CROSS_REFERENCE_ENABLE_FOR_NATIVE', True) == '1':
         default_cross_reference(d)
 }
