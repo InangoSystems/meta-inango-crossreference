@@ -12,13 +12,18 @@ CROSS_REFERENCE_TAG_FILE_PATH ?= "${CROSS_REFERENCE_TAG_DIR}/${CROSS_REFERENCE_T
 CROSS_REFERENCE_ADDITIONAL_TAG_FILE = "source.atf"
 CROSS_REFERENCE_CMD_ctags = "ctags --file-scope=no --recurse -f ${CROSS_REFERENCE_TAG_FILE_PATH} `pwd`"
 CROSS_REFERENCE_CMD_cscope = "cscope -Rb -f ${CROSS_REFERENCE_TAG_FILE_PATH}"
+
 CROSS_REFERENCE_KERNEL = "${PREFERRED_PROVIDER_virtual/kernel}"
 #For enabled cross-reference for native/kernel
 #set ${CROSS_REFERENCE_ENABLE_FOR_NATIVE}/${CROSS_REFERENCE_ENABLE_FOR_KERNEL} to '1'
 #For disabled set to '0' (default)
 CROSS_REFERENCE_ENABLE_FOR_NATIVE ?= '0'
 CROSS_REFERENCE_ENABLE_FOR_KERNEL ?= '0'
-
+CROSS_REFERENCE_IGNORED_RECIPES += "gcc-.* \
+   libgcc.* \
+   linux-libc-headers \
+   linux-intel-headers \
+"
 do_all_cross_reference[doc] = "Creates tag file of language objects found in source files for all packages"
 
 addtask do_all_cross_reference after do_cross_reference
@@ -54,6 +59,7 @@ def cross_reference_task(d, param):
             bb.warn(message)
         else:
             bb.plain(message)
+
     current_dir = os.getcwd()
     try:
         os.chdir(param['source'])
@@ -84,8 +90,13 @@ def default_cross_reference(d):
     """
     This function execute cross_reference_task with parameters for the source.
     """
+    import re
+    pn = d.getVar('PN', True)
+    if re.compile(re.sub("\s+", "|", d.getVar('CROSS_REFERENCE_IGNORED_RECIPES', True).strip())).match(pn) :
+        bb.plain("The recipe %s is ignored for cross-reference" % pn)
+        return
     param = {
-        'package_name': d.getVar('PN', True),
+        'package_name': pn,
         'source': d.getVar('S',True),
         'cross_reference':{
             'tool': d.getVar('CROSS_REFERENCE_TOOL', True),
