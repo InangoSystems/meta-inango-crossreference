@@ -47,6 +47,8 @@ python do_merge_all_cross_reference() {
 
 addtask merge_all_cross_reference after do_include_cross_reference before do_build
 
+do_include_cross_reference[dirs] = "${INCLUDE_CROSS_REFERENCE_TAG_DIR}"
+
 python do_include_cross_reference() {
     param = {
         'package_name': d.getVar('PN', True),

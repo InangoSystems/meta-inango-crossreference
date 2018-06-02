@@ -24,6 +24,7 @@ CROSS_REFERENCE_IGNORED_RECIPES += "gcc-.* \
    linux-libc-headers \
    linux-intel-headers \
 "
+
 do_all_cross_reference[doc] = "Creates tag file of language objects found in source files for all packages"
 
 addtask do_all_cross_reference after do_cross_reference
@@ -35,6 +36,7 @@ do_all_cross_reference() {
 
 do_cross_reference[doc] = "Creates tag file of language objects found in source files"
 do_cross_reference[depends] = "${CROSS_REFERENCE_TOOL}-native:do_populate_sysroot"
+do_cross_reference[dirs] = "${CROSS_REFERENCE_TAG_DIR}"
 
 def cross_reference_task(d, param):
     """
@@ -70,8 +72,6 @@ def cross_reference_task(d, param):
     if param['cross_reference']['command'] is None:
         # add command as a variable to create tag file
         bb.fatal("Command for creating tag file with %s utility is not specified" % param['cross_reference']['tool'])
-    if not os.path.exists(param['cross_reference']['tag_dir']):
-        os.mkdir(param['cross_reference']['tag_dir'])
     
     retvalue = os.system(param['cross_reference']['command'])
 
@@ -117,11 +117,18 @@ python do_cross_reference () {
 python do_cross_reference_class-native(){
     if d.getVar('CROSS_REFERENCE_ENABLE_FOR_NATIVE', True) == '1':
         default_cross_reference(d)
+    else:
+        pn = d.getVar('PN', True)
+        bb.plain("The recipe %s is ignored for cross-reference" % pn)
+
 }
 
 do_cross_reference_pn-${CROSS_REFERENCE_KERNEL}() {
-    if d.getVar('CROSS_REFERENCE_ENABLE_FOR_NATIVE', True) == '1':
+    if d.getVar('CROSS_REFERENCE_ENABLE_FOR_KERNEL', True) == '1':
         default_cross_reference(d)
+    else:
+        pn = d.getVar('PN', True)
+        bb.plain("The recipe %s is ignored for cross-reference" % pn)
 }
 
 addtask cross_reference after do_patch before do_build
