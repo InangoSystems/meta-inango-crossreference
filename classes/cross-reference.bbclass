@@ -51,7 +51,7 @@ def cross_reference_task(d, param):
             'tag_file_path': d.getVar('CROSS_REFERENCE_TAG_FILE_PATH', True), # Path to tag file
             'tag_name': d.getVar('CROSS_REFERENCE_TAG_NAME', True), # Name of tag file
             'additional_tag_file': d.getVar('CROSS_REFERENCE_ADDITIONAL_TAG_FILE', True) # It is additional file and need for merge_all_cross_referense_task.
-                                                                                         # This file have next format: ${PN} - ${PN}/${CROSS_REFERENCE_TAG_NAME}. 
+                                                                                         # This file have next format: ${PN} - ${PN}/${CROSS_REFERENCE_TAG_NAME}.
         }
     """
     def error_on_failure(d, message):
@@ -72,7 +72,7 @@ def cross_reference_task(d, param):
     if param['cross_reference']['command'] is None:
         # add command as a variable to create tag file
         bb.fatal("Command for creating tag file with %s utility is not specified" % param['cross_reference']['tool'])
-    
+
     retvalue = os.system(param['cross_reference']['command'])
 
     if retvalue != 0:
@@ -131,7 +131,7 @@ do_cross_reference_pn-${CROSS_REFERENCE_KERNEL}() {
         bb.plain("The recipe %s is ignored for cross-reference" % pn)
 }
 
-addtask cross_reference after do_patch before do_build
+addtask cross_reference after do_configure before do_build
 
 SSTATETASKS += "do_cross_reference"
 CROSS_REFERENCE_SSTATE_CACHES_DIR = "${STAGING_DIR}/${MACHINE}/cross-reference"

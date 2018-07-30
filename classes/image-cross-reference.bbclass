@@ -45,7 +45,7 @@ python do_merge_all_cross_reference() {
 
 }
 
-addtask merge_all_cross_reference after do_include_cross_reference before do_build
+addtask merge_all_cross_reference after do_all_cross_reference before do_build
 
 do_include_cross_reference[dirs] = "${INCLUDE_CROSS_REFERENCE_TAG_DIR}"
 
@@ -66,7 +66,7 @@ python do_include_cross_reference() {
     bb.plain("Generate cross-reference for headers")
     cross_reference_task(d, param)
 }
-addtask do_include_cross_reference after do_all_cross_reference
+#addtask do_include_cross_reference after do_all_cross_reference
 
 SSTATETASKS += "do_merge_all_cross_reference"
 do_merge_all_cross_reference[sstate-inputdirs] = "${CROSS_REFERENCE_MERGE_DIR}"
@@ -88,4 +88,4 @@ python do_include_cross_reference_setscene () {
     sstate_setscene(d)
 }
 
-addtask do_include_cross_reference_setscene
+#addtask do_include_cross_reference_setscene
