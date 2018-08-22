@@ -10,9 +10,12 @@ CROSS_REFERENCE_TAG_NAME = "source.tag"
 CROSS_REFERENCE_TAG_DIR = "${WORKDIR}/cross-reference"
 CROSS_REFERENCE_TAG_FILE_PATH ?= "${CROSS_REFERENCE_TAG_DIR}/${CROSS_REFERENCE_TAG_NAME}"
 CROSS_REFERENCE_ADDITIONAL_TAG_FILE = "source.atf"
+CROSS_REFERENCE_FAIL_REASON_FILE_NAME = "fail.frf"
+CROSS_REFERENCE_FAIL_REASON_FILE_PATH = "${S}/${CROSS_REFERENCE_FAIL_REASON_FILE_NAME}"
 CROSS_REFERENCE_CMD_ctags = "ctags --file-scope=no --recurse -f ${CROSS_REFERENCE_TAG_FILE_PATH} `pwd`"
 CROSS_REFERENCE_CMD_cscope = "cscope -Rb -f ${CROSS_REFERENCE_TAG_FILE_PATH}"
-
+CROSS_REFERNCE_LOG_FILE_PATH ?= ""
+CROSS_REFERENCE_PREV_STATE_FILE ?= ""
 CROSS_REFERENCE_KERNEL = "${PREFERRED_PROVIDER_virtual/kernel}"
 #For enabled cross-reference for native/kernel
 #set ${CROSS_REFERENCE_ENABLE_FOR_NATIVE}/${CROSS_REFERENCE_ENABLE_FOR_KERNEL} to '1'
@@ -37,6 +40,14 @@ do_all_cross_reference() {
 do_cross_reference[doc] = "Creates tag file of language objects found in source files"
 do_cross_reference[depends] = "${CROSS_REFERENCE_TOOL}-native:do_populate_sysroot"
 do_cross_reference[dirs] = "${CROSS_REFERENCE_TAG_DIR}"
+
+def cross_reference_fail(file_path, recipe_name, fail_type = "fail"):
+    text = "%s\t\t%s\n" % (recipe_name, fail_type)
+    f = open(file_path, 'w')
+    f.write(text)
+
+def analyze_indexer_log(path_to_log, prev_state_file):
+    return 0, ""
 
 def cross_reference_task(d, param):
     """
@@ -74,16 +85,27 @@ def cross_reference_task(d, param):
         bb.fatal("Command for creating tag file with %s utility is not specified" % param['cross_reference']['tool'])
 
     retvalue = os.system(param['cross_reference']['command'])
-
+    fail = False
     if retvalue != 0:
+        fail = True
+        fail_type = "can't_create_tag"
         error_on_failure(d, "Can't create tags file for target: %s" % param['package_name'])
     else:
         if not os.path.exists(param['cross_reference']['tag_file_path']):
+            fail = True
+            fail_type = "tag_was_not_created"
             error_on_failure(d, "Tag file was not created for target: %s" % param['package_name'])
         else:
+            analyze_res = analyze_indexer_log(d.getVar('CROSS_REFERNCE_LOG_FILE_PATH', True), d.getVar('CROSS_REFERENCE_PREV_STATE_FILE', True))
+            bb.plain( d.getVar('CROSS_REFERENCE_PREV_STATE_FILE', True))
+            if analyze_res[0] != 0:
+                fail = True
+                fail_type = analyze_res[1]
             execute_command = 'echo %s - %s > %s' % (param['package_name'], param['cross_reference']['rel_path_to_tag'], param['cross_reference']['additional_tag_file'])
             os.system(execute_command)
             bb.note("Tag file was created. See directory: %s for details" % param['cross_reference']['tag_dir'])
+    if fail:
+        cross_reference_fail(d.getVar('CROSS_REFERENCE_FAIL_REASON_FILE_PATH', True), param['package_name'], fail_type)
     os.chdir(current_dir)
 
 def default_cross_reference(d):
@@ -93,6 +115,7 @@ def default_cross_reference(d):
     import re
     pn = d.getVar('PN', True)
     if re.compile(re.sub("\s+", "|", d.getVar('CROSS_REFERENCE_IGNORED_RECIPES', True).strip())).match(pn) :
+        cross_reference_fail(d.getVar('CROSS_REFERENCE_FAIL_REASON_FILE_PATH',True), pn, 'ignore')
         bb.plain("The recipe %s is ignored for cross-reference" % pn)
         return
     param = {
@@ -119,7 +142,8 @@ python do_cross_reference_class-native(){
         default_cross_reference(d)
     else:
         pn = d.getVar('PN', True)
-        bb.plain("The recipe %s is ignored for cross-reference" % pn)
+        cross_reference_fail(d.getVar('CROSS_REFERENCE_FAIL_REASON_FILE_PATH',True), pn, 'ignore')
+        bb.plain("The native recipe %s is ignored for cross-reference" % pn)
 
 }
 
@@ -128,7 +152,8 @@ do_cross_reference_pn-${CROSS_REFERENCE_KERNEL}() {
         default_cross_reference(d)
     else:
         pn = d.getVar('PN', True)
-        bb.plain("The recipe %s is ignored for cross-reference" % pn)
+        cross_reference_fail(d.getVar('CROSS_REFERENCE_FAIL_REASON_FILE_PATH',True), pn, 'ignore')
+        bb.plain("The kernel recipe %s is ignored for cross-reference" % pn)
 }
 
 addtask cross_reference after do_configure before do_build
