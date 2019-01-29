@@ -1,22 +1,25 @@
-# Copyright (C) 2017 Inango Systems Ltd
+# Copyright (C) 2019 Inango Systems Ltd
 # Released under the ******  license (see COPYING.INANGO for the terms)
 
-DESCRIPTION = "Creates and merges tags files for all build packages"
+DESCRIPTION = "Creates tags files for all built packages"
 
-CROSS_REFERENCE_TOOL ?= "ctags"
 CROSS_REFERENCE_ERROR_ON_FAILURE ?= "info"
 
-CROSS_REFERENCE_TAG_NAME = "source.tag"
-CROSS_REFERENCE_TAG_DIR = "${WORKDIR}/cross-reference"
+# Default cross reference tool is "ctags", so default values of related variables should be relevant for "ctags"
+CROSS_REFERENCE_TOOL ?= "ctags"
+CROSS_REFERENCE_TAG_NAME ?= "tags"
+
+CROSS_REFERENCE_CMD_ctags ?= "ctags --file-scope=no --recurse -f ${CROSS_REFERENCE_TAG_FILE_PATH} `pwd`"
+CROSS_REFERENCE_CMD_cscope ?= "cscope -Rb -f ${CROSS_REFERENCE_TAG_FILE_PATH}"
+
+CROSS_REFERENCE_TAG_DIR ?= "${WORKDIR}/cross-reference"
 CROSS_REFERENCE_TAG_FILE_PATH ?= "${CROSS_REFERENCE_TAG_DIR}/${CROSS_REFERENCE_TAG_NAME}"
-CROSS_REFERENCE_ADDITIONAL_TAG_FILE = "source.atf"
-CROSS_REFERENCE_FAIL_REASON_FILE_NAME = "fail.frf"
-CROSS_REFERENCE_FAIL_REASON_FILE_PATH = "${S}/${CROSS_REFERENCE_FAIL_REASON_FILE_NAME}"
-CROSS_REFERENCE_CMD_ctags = "ctags --file-scope=no --recurse -f ${CROSS_REFERENCE_TAG_FILE_PATH} `pwd`"
-CROSS_REFERENCE_CMD_cscope = "cscope -Rb -f ${CROSS_REFERENCE_TAG_FILE_PATH}"
+CROSS_REFERENCE_ADDITIONAL_TAG_FILE ?= "source.atf"
+CROSS_REFERENCE_FAIL_REASON_FILE_NAME ?= "fail.frf"
+CROSS_REFERENCE_FAIL_REASON_FILE_PATH ?= "${S}/${CROSS_REFERENCE_FAIL_REASON_FILE_NAME}"
 CROSS_REFERNCE_LOG_FILE_PATH ?= ""
 CROSS_REFERENCE_PREV_STATE_FILE ?= ""
-CROSS_REFERENCE_KERNEL = "${PREFERRED_PROVIDER_virtual/kernel}"
+CROSS_REFERENCE_KERNEL ?= "${PREFERRED_PROVIDER_virtual/kernel}"
 #For enabled cross-reference for native/kernel
 #set ${CROSS_REFERENCE_ENABLE_FOR_NATIVE}/${CROSS_REFERENCE_ENABLE_FOR_KERNEL} to '1'
 #For disabled set to '0' (default)
@@ -65,13 +68,6 @@ def cross_reference_task(d, param):
                                                                                          # This file have next format: ${PN} - ${PN}/${CROSS_REFERENCE_TAG_NAME}.
         }
     """
-    def error_on_failure(d, message):
-        if d.getVar('CROSS_REFERENCE_ERROR_ON_FAILURE', True) == "error":
-            bb.fatal(message)
-        elif d.getVar('CROSS_REFERENCE_ERROR_ON_FAILURE', True) == "warning":
-            bb.warn(message)
-        else:
-            bb.plain(message)
 
     current_dir = os.getcwd()
     try:
@@ -107,6 +103,15 @@ def cross_reference_task(d, param):
     if fail:
         cross_reference_fail(d.getVar('CROSS_REFERENCE_FAIL_REASON_FILE_PATH', True), param['package_name'], fail_type)
     os.chdir(current_dir)
+
+
+def error_on_failure(d, message):
+    if d.getVar('CROSS_REFERENCE_ERROR_ON_FAILURE', True) == "error":
+        bb.fatal(message)
+    elif d.getVar('CROSS_REFERENCE_ERROR_ON_FAILURE', True) == "warning":
+        bb.warn(message)
+    else:
+        bb.plain(message)
 
 def default_cross_reference(d):
     """
@@ -159,8 +164,8 @@ do_cross_reference_pn-${CROSS_REFERENCE_KERNEL}() {
 addtask cross_reference after do_configure before do_build
 
 SSTATETASKS += "do_cross_reference"
-CROSS_REFERENCE_SSTATE_CACHES_DIR = "${STAGING_DIR}/${MACHINE}/cross-reference"
-CROSS_REFERENCE_SSTATE_CACHES_PACKAGE_DIR = "${CROSS_REFERENCE_SSTATE_CACHES_DIR}/${PN}"
+CROSS_REFERENCE_SSTATE_CACHES_DIR ?= "${STAGING_DIR}/${MACHINE}/cross-reference"
+CROSS_REFERENCE_SSTATE_CACHES_PACKAGE_DIR ?= "${CROSS_REFERENCE_SSTATE_CACHES_DIR}/${PN}"
 
 do_cross_reference[sstate-inputdirs] = "${CROSS_REFERENCE_TAG_DIR}"
 do_cross_reference[sstate-outputdirs] = "${CROSS_REFERENCE_SSTATE_CACHES_PACKAGE_DIR}"
