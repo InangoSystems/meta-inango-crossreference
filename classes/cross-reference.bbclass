@@ -20,19 +20,20 @@ CROSS_REFERENCE_FAIL_REASON_FILE_PATH ?= "${S}/${CROSS_REFERENCE_FAIL_REASON_FIL
 CROSS_REFERNCE_LOG_FILE_PATH ?= ""
 CROSS_REFERENCE_PREV_STATE_FILE ?= ""
 CROSS_REFERENCE_KERNEL ?= "${PREFERRED_PROVIDER_virtual/kernel}"
-#For enabled cross-reference for native/kernel
-#set ${CROSS_REFERENCE_ENABLE_FOR_NATIVE}/${CROSS_REFERENCE_ENABLE_FOR_KERNEL} to '1'
-#For disabled set to '0' (default)
+# To enable cross-reference for native/kernel
+# set ${CROSS_REFERENCE_ENABLE_FOR_NATIVE}/${CROSS_REFERENCE_ENABLE_FOR_KERNEL} to '1'
+# For disabled set to '0' (default)
 CROSS_REFERENCE_ENABLE_FOR_NATIVE ?= '0'
 CROSS_REFERENCE_ENABLE_FOR_KERNEL ?= '0'
 CROSS_REFERENCE_IGNORED_RECIPES += "gcc-.* \
    libgcc.* \
    linux-libc-headers \
-   linux-intel-headers \
 "
 
 do_all_cross_reference[doc] = "Creates tag file of language objects found in source files for all packages"
 
+# Without additional task "do_all_cross_reference" recursive dependency on "do_cross_reference"
+#    influence recipes does not work
 addtask do_all_cross_reference after do_cross_reference
 do_all_cross_reference[recrdeptask] = "do_all_cross_reference do_cross_reference"
 do_all_cross_reference[recideptask] = "do_${BB_DEFAULT_TASK}"
@@ -46,8 +47,8 @@ do_cross_reference[dirs] = "${CROSS_REFERENCE_TAG_DIR}"
 
 def cross_reference_fail(file_path, recipe_name, fail_type = "fail"):
     text = "%s\t\t%s\n" % (recipe_name, fail_type)
-    f = open(file_path, 'w')
-    f.write(text)
+    with open(file_path, 'w') as fo:
+        fo.write(text)
 
 def analyze_indexer_log(path_to_log, prev_state_file):
     return 0, ""
@@ -73,24 +74,24 @@ def cross_reference_task(d, param):
     try:
         os.chdir(param['source'])
     except FileNotFoundError:
-        bb.plain("Can't create tags file for target: %s" % param['package_name'])
+        bb.plain("Can't create tags file for target: {}".format(param['package_name']))
         return
 
     if param['cross_reference']['command'] is None:
         # add command as a variable to create tag file
-        bb.fatal("Command for creating tag file with %s utility is not specified" % param['cross_reference']['tool'])
+        bb.fatal('Command for creating tag file with "{}" utility is not specified'.format(param['cross_reference']['tool']))
 
     retvalue = os.system(param['cross_reference']['command'])
     fail = False
     if retvalue != 0:
         fail = True
         fail_type = "can't_create_tag"
-        error_on_failure(d, "Can't create tags file for target: %s" % param['package_name'])
+        error_on_failure(d, "Can't create tags file for target: {}".format(param['package_name']))
     else:
         if not os.path.exists(param['cross_reference']['tag_file_path']):
             fail = True
             fail_type = "tag_was_not_created"
-            error_on_failure(d, "Tag file was not created for target: %s" % param['package_name'])
+            error_on_failure(d, 'Tag file was not created for target: {}'.format(param['package_name']))
         else:
             analyze_res = analyze_indexer_log(d.getVar('CROSS_REFERNCE_LOG_FILE_PATH', True), d.getVar('CROSS_REFERENCE_PREV_STATE_FILE', True))
             bb.plain( d.getVar('CROSS_REFERENCE_PREV_STATE_FILE', True))
@@ -100,9 +101,9 @@ def cross_reference_task(d, param):
             execute_command = 'echo %s - %s > %s' % (param['package_name'], param['cross_reference']['rel_path_to_tag'], param['cross_reference']['additional_tag_file'])
             os.system(execute_command)
             bb.note("Tag file was created. See directory: %s for details" % param['cross_reference']['tag_dir'])
+    os.chdir(current_dir)
     if fail:
         cross_reference_fail(d.getVar('CROSS_REFERENCE_FAIL_REASON_FILE_PATH', True), param['package_name'], fail_type)
-    os.chdir(current_dir)
 
 
 def error_on_failure(d, message):
@@ -162,7 +163,9 @@ do_cross_reference_pn-${CROSS_REFERENCE_KERNEL}() {
 }
 
 addtask cross_reference after do_configure before do_build
-
+#
+# sstate cache support
+#
 SSTATETASKS += "do_cross_reference"
 CROSS_REFERENCE_SSTATE_CACHES_DIR ?= "${STAGING_DIR}/${MACHINE}/cross-reference"
 CROSS_REFERENCE_SSTATE_CACHES_PACKAGE_DIR ?= "${CROSS_REFERENCE_SSTATE_CACHES_DIR}/${PN}"

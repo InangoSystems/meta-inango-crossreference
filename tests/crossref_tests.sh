@@ -6,15 +6,21 @@
 #
 # This is temporary solution for tests
 
-
 image_name=core-image-minimal
 target_recipe=quilt
 native_recipe=quilt-native
 
+set -x
+
 main()
 {
+    # TODO: add cmdline option to enable "set -x"
+
+    utest TEST_no_recipes_parsing_errors
+
     utest TEST_cross_ref_meta_layer_used
     utest TEST_target_recipe_has_cross_reference_tasks
+    utest TEST_native_recipe_has_cross_reference_tasks
     utest TEST_target_recipe_has_no_merge_all_cross_reference_task
     utest TEST_image_recipe_has_cross_reference_tasks
     utest TEST_image_has_merge_all_cross_reference_task
@@ -25,8 +31,20 @@ main()
     utest TEST_no_include_crossref_vars_for_target_recipe
     utest TEST_no_include_crossref_vars_for_native_recipe
 
+    utest TEST_do_cr_for_target_recipe
+    utest TEST_do_cr_for_native_recipe
+    utest TEST_do_cr_for_image
+
+    utest TEST_do_merge_cr_for_image
+
     echo
     echo "==== SUCCESS ===="
+}
+
+################################################################################
+TEST_no_recipes_parsing_errors()
+{
+    bitbake -p "$image_name"
 }
 
 ################################################################################
@@ -41,11 +59,17 @@ TEST_target_recipe_has_cross_reference_tasks()
     crossref_tasks_are_present "$target_recipe"
 }
 
+TEST_native_recipe_has_cross_reference_tasks()
+{
+    crossref_tasks_are_present "$native_recipe"
+}
+
 crossref_tasks_are_present()
 {
     local recipe=$1
     task_is_present "$recipe" do_cross_reference
     task_is_present "$recipe" do_cross_reference_setscene
+    task_is_present "$recipe" do_all_cross_reference
 }
 
 task_is_present()
@@ -56,9 +80,11 @@ task_is_present()
     bitbake -clisttasks "$recipe" | grep --word-regexp "$task"
 }
 
+################################################################################
 TEST_target_recipe_has_no_merge_all_cross_reference_task()
 {
-    task_is_absent "$recipe" do_merge_all_cross_reference
+    task_is_absent "$target_recipe" do_merge_all_cross_reference
+    task_is_absent "$target_recipe" do_merge_all_cross_reference_setscene
 }
 
 task_is_absent()
@@ -79,6 +105,7 @@ TEST_image_recipe_has_cross_reference_tasks()
 TEST_image_has_merge_all_cross_reference_task()
 {
     task_is_present "$image_name" do_merge_all_cross_reference
+    task_is_present "$image_name" do_merge_all_cross_reference_setscene
 }
 
 ################################################################################
@@ -148,6 +175,34 @@ TEST_no_include_crossref_vars_for_target_recipe()
 TEST_no_include_crossref_vars_for_native_recipe()
 {
     env_vars_are_absent_for_recipe_by_regexp "$native_recipe" '(^INCLUDE_CROSS_REFERENCE.*|do_include_cross_reference)'
+}
+
+TEST_do_cr_for_target_recipe()
+{
+    bitbake -f -ccross_reference "$target_recipe"
+}
+
+TEST_do_cr_for_native_recipe()
+{
+    bitbake -f -ccross_reference "$native_recipe" | grep 'is ignored for cross-reference'
+}
+
+TEST_do_cr_for_image()
+{
+    bitbake -f -ccross_reference "$image_name"
+}
+
+TEST_do_merge_cr_for_image()
+{
+    bitbake -cmerge_all_cross_reference "$image_name"
+
+    recipe_env_file="${image_name}.env"
+    [ -f "${recipe_env_file}" ] || bitbake -e "$image_name" > "${recipe_env_file}"
+
+    p=$(grep -o -P '^CROSS_REFERENCE_ALLTAGS_PATH=.*$' "${recipe_env_file}" | cut -d= -f 2)
+    echo "$p"
+
+    test -f "$p"
 }
 
 env_vars_are_absent_for_recipe_by_regexp()
