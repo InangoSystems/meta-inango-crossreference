@@ -10,11 +10,11 @@ image_name=core-image-minimal
 target_recipe=quilt
 native_recipe=quilt-native
 
-set -x
-
 main()
 {
-    # TODO: add cmdline option to enable "set -x"
+    if [ "$1" = "-v" ]; then
+        set -x
+    fi
 
     utest TEST_no_recipes_parsing_errors
 
@@ -105,7 +105,6 @@ TEST_image_recipe_has_cross_reference_tasks()
 TEST_image_has_merge_all_cross_reference_task()
 {
     task_is_present "$image_name" do_merge_all_cross_reference
-    task_is_present "$image_name" do_merge_all_cross_reference_setscene
 }
 
 ################################################################################
@@ -199,10 +198,11 @@ TEST_do_merge_cr_for_image()
     recipe_env_file="${image_name}.env"
     [ -f "${recipe_env_file}" ] || bitbake -e "$image_name" > "${recipe_env_file}"
 
-    p=$(grep -o -P '^CROSS_REFERENCE_ALLTAGS_PATH=.*$' "${recipe_env_file}" | cut -d= -f 2)
-    echo "$p"
+    d=$(grep -o -P '^CROSS_REFERENCE_ALLTAGS_DIR=.*$' "${recipe_env_file}" | cut -d= -f 2 | sed 's/"//g')
+    f=$(grep -o -P '^CROSS_REFERENCE_ALLTAGS_FILENAME=.*$' "${recipe_env_file}" | cut -d= -f 2 | sed 's/"//g')
 
-    test -f "$p"
+    echo "$d/$f"
+    test -f "$d/$f"
 }
 
 env_vars_are_absent_for_recipe_by_regexp()
@@ -225,14 +225,14 @@ env_vars_are_absent_for_recipe_by_regexp()
 utest()
 {
     echo
-    echo "==== RUN TEST "$1" ===="
+    echo "==== RUN TEST \"$1\" ===="
     if ! $1; then
         echo "[FAILED] $1"
         exit 1
     else
         echo "[OK] $1"
     fi
-    echo "==== END TEST "$1" ===="
+    echo "==== END TEST \"$1\" ===="
 }
 
-main
+main "$@"
