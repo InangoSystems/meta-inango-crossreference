@@ -1,5 +1,23 @@
-# Copyright (C) 2019 Inango Systems Ltd
-# Released under the ******  license (see COPYING.INANGO for the terms)
+#
+# Copyright 2019, Inango Systems Ltd.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of
+# this software and associated documentation files (the "Software"), to deal in
+# the Software without restriction, including without limitation the rights to
+# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+# the Software, and to permit persons to whom the Software is furnished to do so,
+# subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+# FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 
 DESCRIPTION = "Creates tags files for all built packages"
 
@@ -7,10 +25,13 @@ CROSS_REFERENCE_ERROR_ON_FAILURE ?= "info"
 
 # Default cross reference tool is "ctags", so default values of related variables should be relevant for "ctags"
 CROSS_REFERENCE_TOOL ?= "ctags"
-CROSS_REFERENCE_TAG_NAME ?= "tags"
+
+CROSS_REFERENCE_TAG_NAME_ctags ?= "tags"
+CROSS_REFERENCE_TAG_NAME_cscope ?= "cscope.out"
+CROSS_REFERENCE_TAG_NAME ?= "${@d.getVar('CROSS_REFERENCE_TAG_NAME_' + d.getVar('CROSS_REFERENCE_TOOL', True), True)}"
 
 CROSS_REFERENCE_CMD_ctags ?= "ctags --file-scope=no --recurse -f ${CROSS_REFERENCE_TAG_FILE_PATH} `pwd`"
-CROSS_REFERENCE_CMD_cscope ?= "cscope -Rb -f ${CROSS_REFERENCE_TAG_FILE_PATH}"
+CROSS_REFERENCE_CMD_cscope ?= 'cscope -R -b -f "${CROSS_REFERENCE_TAG_FILE_PATH}"'
 
 CROSS_REFERENCE_TAG_DIR ?= "${WORKDIR}/cross-reference"
 CROSS_REFERENCE_TAG_FILE_PATH ?= "${CROSS_REFERENCE_TAG_DIR}/${CROSS_REFERENCE_TAG_NAME}"
@@ -19,12 +40,17 @@ CROSS_REFERENCE_FAIL_REASON_FILE_NAME ?= "fail.frf"
 CROSS_REFERENCE_FAIL_REASON_FILE_PATH ?= "${S}/${CROSS_REFERENCE_FAIL_REASON_FILE_NAME}"
 CROSS_REFERNCE_LOG_FILE_PATH ?= ""
 CROSS_REFERENCE_PREV_STATE_FILE ?= ""
-CROSS_REFERENCE_KERNEL ?= "${PREFERRED_PROVIDER_virtual/kernel}"
-# To enable cross-reference for native/kernel
-# set ${CROSS_REFERENCE_ENABLE_FOR_NATIVE}/${CROSS_REFERENCE_ENABLE_FOR_KERNEL} to '1'
-# For disabled set to '0' (default)
+
+CROSS_REFERENCE_ENABLE_FOR_NATIVE[doc] = "Turn on cross-reference for native recipes. If equal '1' then enabled, if '0' - disabled (default)"
 CROSS_REFERENCE_ENABLE_FOR_NATIVE ?= '0'
+
+CROSS_REFERENCE_ENABLE_FOR_KERNEL[doc] = "Turn on cross-reference for kernel. If equal '1' then enabled, if '0' - disabled (default)"
 CROSS_REFERENCE_ENABLE_FOR_KERNEL ?= '0'
+CROSS_REFERENCE_KERNEL ?= "${PREFERRED_PROVIDER_virtual/kernel}"
+
+CROSS_REFERENCE_IGNORED_RECIPES[doc] = "Turn off cross-reference for recipes which names are matched by regexp. \
+To disable some of regexp use '_remove' notation, for example, CROSS_REFERENCE_IGNORED_RECIPES_remove = 'libgcc.*' \
+"
 CROSS_REFERENCE_IGNORED_RECIPES += "gcc-.* \
    libgcc.* \
    linux-libc-headers \

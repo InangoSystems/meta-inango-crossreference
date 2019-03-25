@@ -19,8 +19,7 @@ This layer depends on:
   layers: meta
   branch: master
 
-  URI: git://git.yoctoproject.org/xxxx
-  layers: xxxx
+  URI: git://git@git.inango.com/meta-inango-crossreference
   branch: master
 
 
@@ -55,7 +54,7 @@ other layers needed. e.g.:
     /path/to/yocto/meta \
     /path/to/yocto/meta-yocto \
     /path/to/yocto/meta-yocto-bsp \
-    /path/to/yocto/meta-inango \
+    /path/to/yocto/meta-inango-crossreference \
     "
 
 Defining CROSS_REFERENCE_ERROR_ON_FAILURE variable will allow you
