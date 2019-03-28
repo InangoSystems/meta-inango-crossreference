@@ -59,7 +59,10 @@ python do_merge_all_cross_reference() {
     if os.path.islink(alltags_path):
         os.remove(alltags_path)
 
-    st = os.system(d.getVar("CROSS_REFERENCE_MERGE_CMD_" + d.getVar("CROSS_REFERENCE_TOOL", True), True))
+    cmd = d.getVar("CROSS_REFERENCE_MERGE_CMD_" + d.getVar("CROSS_REFERENCE_TOOL", True), True)
+    bb.debug(1, "PWD: " + os.getcwd())
+    bb.debug(1, cmd)
+    st = os.system(cmd)
     if st != 0:
         error_on_failure(d, "Can't merge tags file for image: {}".format(pn))
     else:
@@ -90,11 +93,13 @@ python do_merge_all_cross_reference() {
 
 def merge_cross_reference_additional_files(d):
     ltpath = d.getVar('CROSS_REFERENCE_LIST_OF_TAGS_PATH', True)
-    execute_command = 'find -L "{}" -name "{}" -type f | xargs cat > "{}"'.format(
-            d.getVar('TMPDIR', True),
-            "*.atf",  # FIXME: extension must be got from atf file name saved in variable
-            ltpath)
-    st = os.system(execute_command)
+    cmd = 'find -L "{}" -name "{}" -type f | xargs cat > "{}"'.format(
+                d.getVar('TMPDIR', True),
+                "*.atf",  # FIXME: extension must be got from atf file name saved in variable
+                ltpath)
+    bb.debug(1, "PWD: " + os.getcwd())
+    bb.debug(1, cmd)
+    st = os.system(cmd)
     if st != 0:
         return st, 'Could not merge cross reference additional files into "{}"'.format(ltpath)
     else:
@@ -104,17 +109,21 @@ def merge_cross_reference_additional_files(d):
 def merge_do_cross_reference_fail_logs(d):
     flpath = d.getVar('CROSS_REFERENCE_FAILS_LIST_PATH', True)
 
-    execute_command = 'find -L "{}" -name "{}" -type f | xargs cat > "{}"'.format(
-        d.getVar('TMPDIR', True), d.getVar('CROSS_REFERENCE_FAIL_REASON_FILE_NAME',True), flpath)
-    st = os.system(execute_command)
+    cmd = 'find -L "{}" -name "{}" -type f | xargs cat > "{}"'.format(
+                d.getVar('TMPDIR', True), d.getVar('CROSS_REFERENCE_FAIL_REASON_FILE_NAME',True), flpath)
+    bb.debug(1, "PWD: " + os.getcwd())
+    bb.debug(1, cmd)
+    st = os.system(cmd)
     if st != 0:
         return st, 'Could not merge cross reference fail logs into "{}"'.format(d.getVar(flpath))
     else:
         return st, 'Cross reference fail logs merged successfully: {}'.format(flpath)
 
 
-addtask merge_all_cross_reference after do_all_cross_reference before do_build
+addtask do_merge_all_cross_reference after do_all_cross_reference before do_build
 #
 # sstate cache is not working for "merge_all_cross_reference"
 # if add sstate cache support and delete 'TMPDIR', then real "merge_all_cross_reference" task
 # will be run instead of using sstate cache content
+
+do_merge_all_cross_reference[nostamp] = "1"

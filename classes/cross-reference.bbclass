@@ -35,7 +35,10 @@ CROSS_REFERENCE_CMD_cscope ?= 'cscope -R -b -f "${CROSS_REFERENCE_TAG_FILE_PATH}
 
 CROSS_REFERENCE_TAG_DIR ?= "${WORKDIR}/cross-reference"
 CROSS_REFERENCE_TAG_FILE_PATH ?= "${CROSS_REFERENCE_TAG_DIR}/${CROSS_REFERENCE_TAG_NAME}"
+
 CROSS_REFERENCE_ADDITIONAL_TAG_FILE ?= "source.atf"
+CROSS_REFERENCE_ADDITIONAL_TAG_PATH ?= "${S}/${CROSS_REFERENCE_ADDITIONAL_TAG_FILE}"
+
 CROSS_REFERENCE_FAIL_REASON_FILE_NAME ?= "fail.frf"
 CROSS_REFERENCE_FAIL_REASON_FILE_PATH ?= "${S}/${CROSS_REFERENCE_FAIL_REASON_FILE_NAME}"
 CROSS_REFERNCE_LOG_FILE_PATH ?= ""
@@ -56,10 +59,7 @@ CROSS_REFERENCE_IGNORED_RECIPES += "gcc-.* \
    linux-libc-headers \
 "
 
-do_all_cross_reference[doc] = "Creates tag file of language objects found in source files for all packages"
-
-# Without additional task "do_all_cross_reference" recursive dependency on "do_cross_reference"
-#    influence recipes does not work
+do_all_cross_reference[doc] = "Creates tag file of language objects found in source files for active packages recursively"
 addtask do_all_cross_reference after do_cross_reference
 do_all_cross_reference[recrdeptask] = "do_all_cross_reference do_cross_reference"
 do_all_cross_reference[recideptask] = "do_${BB_DEFAULT_TASK}"
@@ -91,7 +91,7 @@ def cross_reference_task(d, param):
             'tag_dir': d.getVar('CROSS_REFERENCE_TAG_DIR', True), # A directory where tags will be generated
             'tag_file_path': d.getVar('CROSS_REFERENCE_TAG_FILE_PATH', True), # Path to tag file
             'tag_name': d.getVar('CROSS_REFERENCE_TAG_NAME', True), # Name of tag file
-            'additional_tag_file': d.getVar('CROSS_REFERENCE_ADDITIONAL_TAG_FILE', True) # It is additional file and need for merge_all_cross_referense_task.
+            'additional_tag_path': d.getVar('CROSS_REFERENCE_ADDITIONAL_TAG_PATH', True) # It is additional file and need for merge_all_cross_referense_task.
                                                                                          # This file have next format: ${PN} - ${PN}/${CROSS_REFERENCE_TAG_NAME}.
         }
     """
@@ -107,6 +107,8 @@ def cross_reference_task(d, param):
         # add command as a variable to create tag file
         bb.fatal('Command for creating tag file with "{}" utility is not specified'.format(param['cross_reference']['tool']))
 
+    bb.note("CWD: " + os.getcwd())
+    bb.note(param['cross_reference']['command'])
     retvalue = os.system(param['cross_reference']['command'])
     fail = False
     if retvalue != 0:
@@ -124,8 +126,10 @@ def cross_reference_task(d, param):
             if analyze_res[0] != 0:
                 fail = True
                 fail_type = analyze_res[1]
-            execute_command = 'echo %s - %s > %s' % (param['package_name'], param['cross_reference']['rel_path_to_tag'], param['cross_reference']['additional_tag_file'])
-            os.system(execute_command)
+            cmd = 'echo {} - {} > {}'.format(param['package_name'], param['cross_reference']['rel_path_to_tag'], param['cross_reference']['additional_tag_path'])
+            bb.note("CWD: " + os.getcwd())
+            bb.note(cmd)
+            os.system(cmd)
             bb.note("Tag file was created. See directory: %s for details" % param['cross_reference']['tag_dir'])
     os.chdir(current_dir)
     if fail:
@@ -148,7 +152,7 @@ def default_cross_reference(d):
     pn = d.getVar('PN', True)
     if re.compile(re.sub("\s+", "|", d.getVar('CROSS_REFERENCE_IGNORED_RECIPES', True).strip())).match(pn) :
         cross_reference_fail(d.getVar('CROSS_REFERENCE_FAIL_REASON_FILE_PATH',True), pn, 'ignore')
-        bb.plain("The recipe %s is ignored for cross-reference" % pn)
+        bb.plain("The recipe \"{}\" is ignored for cross-reference".format(pn))
         return
     param = {
         'package_name': pn,
@@ -159,14 +163,14 @@ def default_cross_reference(d):
             'tag_dir': d.getVar('CROSS_REFERENCE_TAG_DIR', True),
             'tag_file_path': d.getVar('CROSS_REFERENCE_TAG_FILE_PATH', True),
             'tag_name': d.getVar('CROSS_REFERENCE_TAG_NAME', True),
-            'additional_tag_file': d.getVar('CROSS_REFERENCE_ADDITIONAL_TAG_FILE', True)
+            'additional_tag_path': d.getVar('CROSS_REFERENCE_ADDITIONAL_TAG_PATH', True)
         }
     }
     param['cross_reference']['rel_path_to_tag'] = os.path.join(param['package_name'], param['cross_reference']['tag_name'])
     cross_reference_task(d, param)
 
 python do_cross_reference () {
-   default_cross_reference(d)
+    default_cross_reference(d)
 }
 
 python do_cross_reference_class-native(){
@@ -188,11 +192,13 @@ do_cross_reference_pn-${CROSS_REFERENCE_KERNEL}() {
         bb.plain("The kernel recipe %s is ignored for cross-reference" % pn)
 }
 
-addtask cross_reference after do_configure before do_build
+addtask do_cross_reference after do_configure before do_build
 #
 # sstate cache support
 #
 SSTATETASKS += "do_cross_reference"
+# Not use ${STAGING_DIR_HOST} instead of ${STAGING_DIR}/${MACHINE}, because for case of
+# native packages the value of STAGING_DIR_HOST is empty
 CROSS_REFERENCE_SSTATE_CACHES_DIR ?= "${STAGING_DIR}/${MACHINE}/cross-reference"
 CROSS_REFERENCE_SSTATE_CACHES_PACKAGE_DIR ?= "${CROSS_REFERENCE_SSTATE_CACHES_DIR}/${PN}"
 
@@ -204,3 +210,56 @@ python do_cross_reference_setscene () {
 }
 
 addtask do_cross_reference_setscene
+
+do_cross_reference[vardepsexclude] += "S B D CROSS_REFERENCE_TAG_DIR CROSS_REFERENCE_ADDITIONAL_TAG_PATH CROSS_REFERENCE_FAIL_REASON_FILE_PATH CROSS_REFERENCE_FAIL_REASON_FILE_PATH CROSS_REFERNCE_LOG_FILE_PATH CROSS_REFERENCE_PREV_STATE_FILE CROSS_REFERENCE_ENABLE_FOR_NATIVE CROSS_REFERENCE_ENABLE_FOR_KERNEL CROSS_REFERENCE_KERNEL CROSS_REFERENCE_IGNORED_RECIPES STAMPS_DIR"
+#
+# Support relative paths in cross reference files stored in sstate caches
+#
+SSTATE_SCAN_FILES += "${CROSS_REFERENCE_TAG_NAME}"
+EXTRA_STAGING_FIXMES += "WORKDIR STAGING_DIR_HOST STAGING_DIR_TARGET"
+
+# workaround for Yocto 2.2 (morty)
+SSTATECREATEFUNCS_append = " sstate_hardcode_path_cr"
+
+python sstate_hardcode_path_cr () {
+    import subprocess
+    import platform
+    import os.path
+    import os
+
+    sstate_builddir = d.getVar("SSTATE_BUILDDIR", True)
+    fixmefn = os.path.join(sstate_builddir, "fixmepath")
+
+    sstate_filelist_cmd = "tee -a %s" % (fixmefn)
+
+    sstate_sed_cmd = "sed -i"
+
+    extra_staging_fixmes = d.getVar('EXTRA_STAGING_FIXMES', True) or ''
+    for fixmevar in extra_staging_fixmes.split():
+        fixme_path = d.getVar(fixmevar, True)
+        sstate_sed_cmd += " -e 's:%s:FIXME_%s:g'" % (fixme_path, fixmevar)
+
+    xargs_no_empty_run_cmd = '--no-run-if-empty'
+    if platform.system() == 'Darwin':
+        xargs_no_empty_run_cmd = ''
+
+    sstate_hardcode_cmd = "find %s -name %s -type f | %s | xargs %s %s" % (
+        sstate_builddir,
+        d.getVar("CROSS_REFERENCE_TAG_NAME", True),
+        sstate_filelist_cmd,
+        xargs_no_empty_run_cmd,
+        sstate_sed_cmd)
+
+    # bb.note("Removing hardcoded paths from sstate package by cmd: '%s'" % (sstate_hardcode_cmd))
+    subprocess.call(sstate_hardcode_cmd, shell=True)
+
+    # fixmepath file needs relative paths, drop sstate_builddir prefix
+    sstate_filelist_relative_cmd = "sed -i -e 's:^%s::g' %s" % (sstate_builddir, fixmefn)
+
+    # If the fixmefn is empty, remove it..
+    if os.stat(fixmefn).st_size == 0:
+        os.remove(fixmefn)
+    else:
+        # bb.note("Make paths in fixmepath file relative by cmd: '%s'" % (sstate_filelist_relative_cmd))
+        subprocess.call(sstate_filelist_relative_cmd, shell=True)
+}

@@ -26,10 +26,14 @@ This layer depends on:
 Patches
 =======
 
-Please submit any patches against the inango layer to the
-xxxx mailing list (xxxx@zzzz.org) and cc: the maintainer:
+Please submit any patches against the Inango cross reference layer
+to the mailing list "os@inango-systems.com"
 
-Maintainer: XXX YYYYYY <xxx.yyyyyy@zzzzz.com>
+Maintainers:
+
+Ivan Efimov <i.efimov@inango-systems.com>
+Nikolay Merinov <n.merinov@inango-systems.com>
+Boris Shehter <b.shehter@inango-systems.com>
 
 
 Table of Contents
