@@ -23,6 +23,8 @@ DESCRIPTION = "Creates tags files for all built packages"
 
 CROSS_REFERENCE_ERROR_ON_FAILURE ?= "info"
 
+CROSS_REFERENCE_ERROR_ON_FAILURE[doc] = "Allows you to continue or stop build if tag file creation fails. Possible values are: 'error', 'warning', 'info'. Default - 'info'"
+
 # Default cross reference tool is "ctags", so default values of related variables should be relevant for "ctags"
 CROSS_REFERENCE_TOOL ?= "ctags"
 
@@ -179,7 +181,7 @@ python do_cross_reference_class-native(){
     else:
         pn = d.getVar('PN', True)
         cross_reference_fail(d.getVar('CROSS_REFERENCE_FAIL_REASON_FILE_PATH',True), pn, 'ignore')
-        bb.plain("The native recipe %s is ignored for cross-reference" % pn)
+        bb.plain("The native recipe \"{}\" is ignored for cross-reference".format(pn))
 
 }
 
@@ -189,7 +191,7 @@ do_cross_reference_pn-${CROSS_REFERENCE_KERNEL}() {
     else:
         pn = d.getVar('PN', True)
         cross_reference_fail(d.getVar('CROSS_REFERENCE_FAIL_REASON_FILE_PATH',True), pn, 'ignore')
-        bb.plain("The kernel recipe %s is ignored for cross-reference" % pn)
+        bb.plain("The kernel recipe \"{}\" is ignored for cross-reference".format(pn))
 }
 
 addtask do_cross_reference after do_configure before do_build
@@ -219,16 +221,20 @@ SSTATE_SCAN_FILES += "${CROSS_REFERENCE_TAG_NAME}"
 EXTRA_STAGING_FIXMES += "WORKDIR STAGING_DIR_HOST STAGING_DIR_TARGET"
 
 # workaround for Yocto 2.2 (morty)
-SSTATECREATEFUNCS_append = " sstate_hardcode_path_cr"
+SSTATECREATEFUNCS_append = " cross_reference_sstate_hardcode_path"
 
-python sstate_hardcode_path_cr () {
+python cross_reference_sstate_hardcode_path() {
+    if "cross_reference" != d.getVar("BB_CURRENTTASK", True):
+        return
+
     import subprocess
     import platform
     import os.path
-    import os
 
     sstate_builddir = d.getVar("SSTATE_BUILDDIR", True)
     fixmefn = os.path.join(sstate_builddir, "fixmepath")
+
+    tag_name = d.getVar("CROSS_REFERENCE_TAG_NAME", True)
 
     sstate_filelist_cmd = "tee -a %s" % (fixmefn)
 
@@ -244,13 +250,9 @@ python sstate_hardcode_path_cr () {
         xargs_no_empty_run_cmd = ''
 
     sstate_hardcode_cmd = "find %s -name %s -type f | %s | xargs %s %s" % (
-        sstate_builddir,
-        d.getVar("CROSS_REFERENCE_TAG_NAME", True),
-        sstate_filelist_cmd,
-        xargs_no_empty_run_cmd,
-        sstate_sed_cmd)
+        sstate_builddir, tag_name, sstate_filelist_cmd, xargs_no_empty_run_cmd, sstate_sed_cmd)
 
-    # bb.note("Removing hardcoded paths from sstate package by cmd: '%s'" % (sstate_hardcode_cmd))
+    bb.note("Removing hardcoded paths from sstate package by cmd: '%s'" % (sstate_hardcode_cmd))
     subprocess.call(sstate_hardcode_cmd, shell=True)
 
     # fixmepath file needs relative paths, drop sstate_builddir prefix
@@ -260,6 +262,6 @@ python sstate_hardcode_path_cr () {
     if os.stat(fixmefn).st_size == 0:
         os.remove(fixmefn)
     else:
-        # bb.note("Make paths in fixmepath file relative by cmd: '%s'" % (sstate_filelist_relative_cmd))
+        bb.note("Make paths in fixmepath file relative by cmd: '%s'" % (sstate_filelist_relative_cmd))
         subprocess.call(sstate_filelist_relative_cmd, shell=True)
 }

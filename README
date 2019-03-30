@@ -1,5 +1,5 @@
 This README file contains information on the contents of the
-inango layer.
+Inango layer.
 
 Please see the corresponding sections below for details.
 ============
@@ -7,20 +7,16 @@ Please see the corresponding sections below for details.
 Inango layer allows to use and implement tools for generating
 cross reference files for all build packages.
 
+
 Dependencies
 ============
 
 This layer depends on:
 
   URI: git://git.openembedded.org/bitbake
-  branch: master
 
   URI: git://git.openembedded.org/openembedded-core
   layers: meta
-  branch: master
-
-  URI: git://git@git.inango.com/meta-inango-crossreference
-  branch: master
 
 
 Patches
@@ -29,7 +25,9 @@ Patches
 Please submit any patches against the Inango cross reference layer
 to the mailing list "os@inango-systems.com"
 
-Maintainers:
+
+Maintainers
+===========
 
 Ivan Efimov <i.efimov@inango-systems.com>
 Nikolay Merinov <n.merinov@inango-systems.com>
@@ -39,19 +37,64 @@ Boris Shehter <b.shehter@inango-systems.com>
 Table of Contents
 =================
 
-  I. Adding the inango layer to your build
- II. Misc
+   I. Supported cross reference tools
+  II. Usage
+ III. Variables
+  IV. Adding the Inango layer to your build
+   V. Classes
 
 
-I. Adding the inango layer to your build
-=================================================
+I. Supported cross reference tools
+==================================
+
+This layer support next cross reference tools itself:
+
+* ctags  (by default)
+* cscope
+
+If you want to add support of another tool then you may do that in your meta
+layer.
+
+Currently used tool is defined by CROSS_REFERENCE_TOOL variable.
+
+
+II. Usage
+==========
+
+Generate cross reference index for target recipe only:
+
+    bitbake -c cross_reference <recipe>
+
+Generate cross reference index target recipe and for recipes from which it depend
+on directly or indirectly:
+
+    bitbake -c all_cross_reference <recipe>
+
+
+Generate combined cross reference index contained all image recipes cross reference
+info:
+
+    bitbake -c merge_all_cross_reference <image>
+
+! The last task is supported for "ctags", but not for "cscope" tool !
+
+
+III. Variables
+===============
+
+See actual documentation notes in "doc" variable flag of variables which names
+starts with prefix CROSS_REFERENCE_
+
+
+IV. Adding the Inango layer to your build
+==========================================
 
 In order to use this layer, you need to make the build system aware of
 it.
 
-Assuming the inango layer exists at the top-level of your
+Assuming the Inango layer exists at the top-level of your
 yocto build tree, you can add it to the build system by adding the
-location of the inango layer to bblayers.conf, along with any
+location of the Inango layer to bblayers.conf, along with any
 other layers needed. e.g.:
 
   BBLAYERS ?= " \
@@ -61,12 +104,19 @@ other layers needed. e.g.:
     /path/to/yocto/meta-inango-crossreference \
     "
 
-Defining CROSS_REFERENCE_ERROR_ON_FAILURE variable will allow you
-to continue or stop build if tag file creation fails.
+Be carefull, "meta-inango-crossreference/conf/layer.conf" contains implicit inherits:
 
-Value "1" for CROSS_REFERENCE_ERROR_ON_FAILURE stops build. 
+    INHERIT += "cross-reference"
+    IMAGE_CLASSES += "image-cross-reference"
 
-II. Misc
-========
 
---- replace with specific information about the inango layer ---
+V. Classes
+===========
+
+* cross-reference.bbclass:
+** add task "do_cross_reference" which creates tag file for target recipe only
+** add task "all_cross_reference" which create tag files for target recipe and
+   all depend recipes recursively
+* image-cross-reference.bbclass:
+** add task "merge_all_cross_referense" which trigger "all_cross_reference" and
+   generate cumulative tag file, then add symlink to it in ${BUILDDIR} folder
