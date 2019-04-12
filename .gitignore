@@ -1,2 +1,10 @@
-# Vim tmp files
+# Vim swap and editors backup files
 *.sw?
+*~
+# Artifacts from git format-patch and patch utilities
+*.orig
+*.rej
+/*.patch
+# Compiled python files in case if we'll create own lib/something python code
+*.py[cod]
+__pycache__/

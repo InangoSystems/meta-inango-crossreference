@@ -52,9 +52,6 @@ This layer support next cross reference tools itself:
 * ctags  (by default)
 * cscope
 
-If you want to add support of another tool then you may do that in your meta
-layer.
-
 Currently used tool is defined by CROSS_REFERENCE_TOOL variable.
 
 
@@ -89,8 +86,7 @@ starts with prefix CROSS_REFERENCE_
 IV. Adding the Inango layer to your build
 ==========================================
 
-In order to use this layer, you need to make the build system aware of
-it.
+In order to use this layer, you need to make the build system aware of it.
 
 Assuming the Inango layer exists at the top-level of your
 yocto build tree, you can add it to the build system by adding the
